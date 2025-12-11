@@ -1,4 +1,4 @@
-from fastapi import APIRouter, HTTPException, status, Query
+from fastapi import APIRouter, Depends, HTTPException, status, Query
 from bson import ObjectId
 from typing import List, Optional
 from config.db import conn
@@ -6,9 +6,9 @@ from model.user import User
 from model.userResponse import UserResponse
 from fastapi_pagination import Page, paginate, Params
 from pydantic import BaseModel
+from utils.security import get_active_user, get_password_hash
 import json
   
-
 # Create a router instance
 user = APIRouter()
 
@@ -20,13 +20,14 @@ user = APIRouter()
 #         json_encoders = {ObjectId: str}
 
 @user.get('/')
-async def get_user():
+async def get_user(current_user:User = Depends(get_active_user)):
     users = []
     for user in conn.users.user.find():
        # user['id'] = str(user['_id'])
         user['_id'] = str(user['_id'])
         users.append(user)
     return users
+
 
 @user.get('/user', response_model=Page[UserResponse])
 async def get_users_withPagination(
@@ -62,6 +63,8 @@ async def get_users_withPagination(
 
 @user.post('/', response_model=UserResponse, status_code=status.HTTP_201_CREATED)
 async def create_user(user: User):
+    hashed_password = get_password_hash(user.hashed_password)
+    user.hashed_password = hashed_password
     # Convert the Pydantic model to a dict and insert into MongoDB
     #user_dict = user.dict()
     user_dict = user.model_dump()  # Changed from dict() to model_dump()

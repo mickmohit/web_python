@@ -6,3 +6,6 @@ class User(BaseModel):
     title: str
     description: Optional[str] = None
     done: bool
+    name: str
+    email: str
+    hashed_password: str
